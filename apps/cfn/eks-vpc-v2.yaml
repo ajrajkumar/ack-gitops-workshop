@@ -185,31 +185,49 @@ Resources:
                   return []
 
               def get_memorydb_info():
+                  subnet_group_name = "memorydb-db-subnet"
                   vpcid = os.environ.get('vpcid')
                   memory_client = boto3.client("memorydb")
                   vpc_client = boto3.client("ec2")
 
                   mysubnets = []
                   az_list = []
+                  failed = False
 
                   subnet_response = vpc_client.describe_subnets(Filters=[{"Name": "vpc-id", "Values": [vpcid]}])
+                  print(subnet_response['Subnets'])
                   for vpc in subnet_response['Subnets']:
-                      mysubnets.append(vpc['SubnetId'])
-                      az_list.append(vpc['AvailabilityZone'])
+                      if not vpc['MapPublicIpOnLaunch'] :
+                          mysubnets.append(vpc['SubnetId'])
+                          az_list.append(vpc['AvailabilityZone'])
 
                   try:
-                      reponse = memory_client.create_subnet_group( SubnetGroupName='memorydbcfntest', SubnetIds=mysubnets)
+                      reponse = memory_client.create_subnet_group( SubnetGroupName=subnet_group_name, SubnetIds=mysubnets)
                   except Exception as e:
-                      print("Creation of test memorydb subnet failed: {}".format(str(e)))
-                      if "SubnetNotAllowedFault" in str(e):
-                          az= str(e).split("[")[-1].replace(" ","").replace("].","")
-                          print("Supported region {}".format(az))
-                          az_list = az.split(",")
+                      if "SubnetGroupAlreadyExistsFault" in str(e):
+                          print("Subnet group already exists.. continuing")
+                      else:
+                          failed = True
+                          print("Creation of test memorydb subnet failed: {}".format(str(e)))
+                          if "SubnetNotAllowedFault" in str(e):
+                              az= str(e).split("[")[-1].replace(" ","").replace("].","")
+                              print("Supported region {}".format(az))
+                              az_list = az.split(",")
+                          
                   subnet_list=[]
                   for vpc in subnet_response['Subnets']:
-                      if vpc['AvailabilityZone'] in az_list :
+                      if vpc['AvailabilityZone'] in az_list and not vpc['MapPublicIpOnLaunch'] :
                           subnet_list.append(vpc['SubnetId'])
-                  return (az_list, subnet_list)
+
+                  if failed:
+                    try:
+                        reponse = memory_client.create_subnet_group( SubnetGroupName=subnet_group_name, SubnetIds=subnet_list)
+                    except Exception as e:
+                        print("Failed to create the subnet with the new subnetlist {}".format(str(e)))
+                      
+                  print(az_list)
+                  print(subnet_list)
+                  return (az_list, subnet_list) 
 
               def ack_permissions(eks_cluster_name):
                 service_names = ['rds','memorydb']
@@ -578,7 +596,6 @@ Resources:
         - !Ref SubnetBPrivate
         - !Ref SubnetCPrivate
 
-
   ClusterSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -794,7 +811,7 @@ Resources:
             - "#!/bin/bash"
             - su - ec2-user -c "
             - cd /home/ec2-user/environment
-            - aws s3 cp s3://ee-assets-prod-us-east-1/modules/ead3ed9cfcbe40ad871a44e121334d7f/v1/prereq.sh prereq.sh
+            - wget https://raw.githubusercontent.com/ajrajkumar/ack-gitops-workshop/main/apps/cfn/prereq.sh
             - chmod +x prereq.sh "
             - echo "Bootstrap completed with return code $?"
 

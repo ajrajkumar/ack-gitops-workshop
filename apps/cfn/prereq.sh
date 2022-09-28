@@ -103,14 +103,14 @@ function clone_git()
     sed -i -e "s/<region>/$AWS_REGION/g" \
          -e "s/<account_id>/$AWS_ACCOUNT_ID/g" \
          -e "s/<dbSubnetGroupName>/rds-db-subnet/g" \
-         -e "s/<MemdbSubnetGroupName>/memdb-subnet/g" \
+         -e "s/<MemdbSubnetGroupName>/memorydb-db-subnet/g" \
          -e "s/<vpcSecurityGroupIDs>/$VPCID/g" \
        ./apps/production/retailapp/*.yaml
 
     sed -i -e "s/<region>/$AWS_REGION/g" \
    	-e "s/<account_id>/$AWS_ACCOUNT_ID/g" \
    	-e "s/<dbSubnetGroupName>/rds-db-subnet/g" \
-   	-e "s/<MemdbSubnetGroupName>/memdb-subnet/g" \
+   	-e "s/<MemdbSubnetGroupName>/memorydb-db-subnet/g" \
    	-e "s/<vpcSecurityGroupIDs>/$vpcsg/g" \
    	./apps/production/*.yaml
 
