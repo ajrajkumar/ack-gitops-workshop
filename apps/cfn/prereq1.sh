@@ -272,11 +272,11 @@ fi
 
 install_k8s_utilities
 install_postgresql
+clone_git
 create_eks_cluster
 update_kubeconfig
 update_eks
 install_loadbalancer
-clone_git
 chk_installation
 run_kubectl
 create_iam_user
