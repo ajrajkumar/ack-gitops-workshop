@@ -91,6 +91,7 @@ function clone_git()
     echo "Cloning the git repository"
     print_line
     cd ${HOME}/environment
+    rm -rf ack.gitlab ack.codecommit
     git clone https://github.com/ajrajkumar/ack-gitops-workshop.git ack.gitlab
     git clone https://git-codecommit.${AWS_REGION}.amazonaws.com/v1/repos/ack-gitops-workshop ack.codecommit
     cd ack.codecommit
@@ -207,19 +208,83 @@ function build_and_publish_container_images()
 }
 
 
+function cloud9_permission()
+{
+    aws sts get-caller-identity
+    environment_id=`aws ec2 describe-instances --instance-id $(curl -s http://169.254.169.254/latest/meta-data/instance-id) --query "Reservations[*].Instances[*].Tags[?Key=='aws:cloud9:environment'].Value" --output text`
+    aws cloud9 update-environment --environment-id ${environment_id} --region ${AWS_REGION} --managed-credentials-action DISABLE
+    sleep 10
+    ls -l $HOME/.aws/credentials > /dev/null 2>&1
+    if [ $? -eq 0 ] ; then
+         echo "!!! Credentials file exists"
+    else
+        echo "Credentials file does not exists"
+    fi
+    aws sts get-caller-identity
+}
+
+
+function print_environment()
+{
+    print_line
+    echo "Current Region : ${AWS_REGION}"
+    echo "EKS Namespace  : ${EKS_NAMESPACE}"
+    echo "EKS Cluster Name : ${EKS_CLUSTER_NAME}"
+    echo "VPCID           : ${VPCID}"
+    echo "Subnet A        : ${SUBNETA}"
+    echo "Subnet B        : ${SUBNETB}"
+    echo "Subnet C        : ${SUBNETC}"
+    echo "VPC SG           : ${vpcsg}"
+    print_line
+}
+
+function create_eks_cluster()
+{
+    typeset -i counter
+    counter=0
+    echo "aws cloudformation  create-stack --stack-name ${EKS_STACK_NAME} --parameters ParameterKey=VPC,ParameterValue=${VPCID} ParameterKey=SubnetAPrivate,ParameterValue=${SUBNETA} ParameterKey=SubnetBPrivate,ParameterValue=${SUBNETB} ParameterKey=SubnetCPrivate,ParameterValue=${SUBNETC} --template-body file://${EKS_CFN_FILE} --capabilities CAPABILITY_IAM"
+    #aws cloudformation  create-stack --stack-name ${EKS_STACK_NAME} --parameters ParameterKey=VPC,ParameterValue=${VPCID} ParameterKey=SubnetAPrivate,ParameterValue=${SUBNETA} ParameterKey=SubnetBPrivate,ParameterValue=${SUBNETB} ParameterKey=SubnetCPrivate,ParameterValue=${SUBNETC} --template-body file://${EKS_CFN_FILE} --capabilities CAPABILITY_IAM
+    # Checking to make sure the cloudformation completes before continuing
+    while  [ $counter -lt 100 ]
+    do
+        STATUS=`aws cloudformation describe-stacks --stack-name ${EKS_STACK_NAME} --query  Stacks[0].StackStatus`
+	echo ${STATUS} |  grep CREATE_IN_PROGRESS  > /dev/null 
+	if [ $? -eq 0 ] ; then
+	    echo "EKS cluster Stack creation is in progress ${STATUS}... waiting"
+	    sleep 60
+	else
+	    echo "EKS cluster Stack creation status is ${STATUS} breaking the loop"
+	    break
+	fi
+    done
+    echo ${STATUS} |  grep CREATE_COMPLETE  > /dev/null 
+    if [ $? -eq 0 ] ; then
+       echo "EKS cluster Stack creation completed successfully"
+    else
+       echo "EKS cluster Stack creation failed with status ${STATUS}.. exiting"
+       exit 1 
+    fi
+}
+
 # Main program starts here
 
-chk_aws_environment
+echo "Process started at `date`"
 install_packages
 
 export AWS_REGION=`curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r`
+cloud9_permission
+export EKS_STACK_NAME="ack-rds-workshop"
+export EKS_CFN_FILE="${HOME}/environment/ack.codecommit/apps/cfn/ack-rds-cfn-prereq.yaml"
 export EKS_NAMESPACE="kube-system"
 export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text) 
 export VPCID=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `VPC`].OutputValue' --output text)
+export SUBNETA=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetAPrivate`].OutputValue' --output text)
+export SUBNETB=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetBPrivate`].OutputValue' --output text)
+export SUBNETC=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetCPrivate`].OutputValue' --output text)
 export vpcsg=$(aws ec2 describe-security-groups --filters Name=ip-permission.from-port,Values=5432 Name=ip-permission.to-port,Values=5432 --query "SecurityGroups[0].GroupId" --output text)
  
-echo "Current Region :  ${AWS_REGION}"
+print_environment
 
 if [ ${1}X == "-xX" ] ; then
     TERM="/dev/tty"
@@ -229,12 +294,15 @@ fi
 
 install_k8s_utilities
 install_postgresql
+create_iam_user
+clone_git
+create_eks_cluster
 update_kubeconfig
 update_eks
 install_loadbalancer
-clone_git
 chk_installation
 run_kubectl
-create_iam_user
 build_and_publish_container_images
 print_line
+
+echo "Process completed at `date`"
