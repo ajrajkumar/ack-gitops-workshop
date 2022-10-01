@@ -279,6 +279,12 @@ function create_eks_cluster()
 
 # Main program starts here
 
+if [ ${1}X == "-xX" ] ; then
+    TERM="/dev/tty"
+else
+    TERM="/dev/null"
+fi
+
 echo "Process started at `date`"
 install_packages
 
@@ -293,14 +299,6 @@ export SUBNETA=$(aws cloudformation describe-stacks --region $AWS_REGION --query
 export SUBNETB=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetBPrivate`].OutputValue' --output text)
 export SUBNETC=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetCPrivate`].OutputValue' --output text)
  
-print_environment
-
-if [ ${1}X == "-xX" ] ; then
-    TERM="/dev/tty"
-else
-    TERM="/dev/null"
-fi
-
 install_k8s_utilities
 install_postgresql
 create_iam_user
@@ -308,6 +306,7 @@ clone_git
 create_eks_cluster
 export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
 export vpcsg=$(aws ec2 describe-security-groups --filters Name=ip-permission.from-port,Values=5432 Name=ip-permission.to-port,Values=5432 --query "SecurityGroups[0].GroupId" --output text)
+print_environment
 fix_git
 update_kubeconfig
 update_eks
