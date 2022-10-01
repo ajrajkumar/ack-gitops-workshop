@@ -240,9 +240,8 @@ function print_environment()
 
 function create_eks_cluster()
 {
-
-    aws cloudformation  create-stack --stack-name ack-rds-workshop 
-
+    echo "aws cloudformation  create-stack --stack-name ${EKS_STACK_NAME} --parameters ParameterKey=VPC,ParameterValue=${VPCID}, ParameterKey=SubnetAPrivate,ParameterValue=${SUBNETA}, ParameterKey=SubnetBPrivate,ParameterValue=${SUBNETB}, ParameterKey=SubnetCPrivate,ParameterValue=${SUBNETC}"
+    aws cloudformation  create-stack --stack-name ${EKS_STACK_NAME} --parameters ParameterKey=VPC,ParameterValue=${VPCID} ParameterKey=SubnetAPrivate,ParameterValue=${SUBNETA} ParameterKey=SubnetBPrivate,ParameterValue=${SUBNETB} ParameterKey=SubnetCPrivate,ParameterValue=${SUBNETC} --template-body file://cfn_prereq.yaml --capabilities CAPABILITY_IAM
 }
 
 # Main program starts here
@@ -253,6 +252,7 @@ install_packages
 
 export AWS_REGION=`curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r`
 cloud9_permission
+export EKS_STACK_NAME="ack-rds-workshop"
 export EKS_NAMESPACE="kube-system"
 export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text) 
@@ -272,7 +272,7 @@ fi
 
 install_k8s_utilities
 install_postgresql
-#create_eks_cluster
+create_eks_cluster
 update_kubeconfig
 update_eks
 install_loadbalancer
