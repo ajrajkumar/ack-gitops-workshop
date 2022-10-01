@@ -226,6 +226,7 @@ function cloud9_permission()
 
 # Main program starts here
 
+echo "Process started at `date`"
 #chk_aws_environment
 install_packages
 
@@ -256,3 +257,5 @@ run_kubectl
 create_iam_user
 build_and_publish_container_images
 print_line
+
+echo "Process completed at `date`"
