@@ -96,6 +96,15 @@ function clone_git()
     git clone https://git-codecommit.${AWS_REGION}.amazonaws.com/v1/repos/ack-gitops-workshop ack.codecommit
     cd ack.codecommit
     cp -rp ../ack.gitlab/* .
+}
+
+function fix_git()
+{
+    print_line
+    echo "Fixing the git repository"
+    print_line
+
+    cd ${HOME}/environment/ack.codecommit
 
     # Update infrastructure manifests
     sed -i -e "s/<region>/$AWS_REGION/g" ./infrastructure/production/ack/*release*.yaml
@@ -282,7 +291,6 @@ export VPCID=$(aws cloudformation describe-stacks --region $AWS_REGION --query '
 export SUBNETA=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetAPrivate`].OutputValue' --output text)
 export SUBNETB=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetBPrivate`].OutputValue' --output text)
 export SUBNETC=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetCPrivate`].OutputValue' --output text)
-export vpcsg=$(aws ec2 describe-security-groups --filters Name=ip-permission.from-port,Values=5432 Name=ip-permission.to-port,Values=5432 --query "SecurityGroups[0].GroupId" --output text)
  
 print_environment
 
@@ -298,6 +306,8 @@ create_iam_user
 clone_git
 create_eks_cluster
 export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
+export vpcsg=$(aws ec2 describe-security-groups --filters Name=ip-permission.from-port,Values=5432 Name=ip-permission.to-port,Values=5432 --query "SecurityGroups[0].GroupId" --output text)
+fix_git
 update_kubeconfig
 update_eks
 install_loadbalancer
