@@ -96,6 +96,7 @@ function clone_git()
     git clone https://git-codecommit.${AWS_REGION}.amazonaws.com/v1/repos/ack-gitops-workshop ack.codecommit
     cd ack.codecommit
     cp -rp ../ack.gitlab/* .
+    print_line
 }
 
 function fix_git()
