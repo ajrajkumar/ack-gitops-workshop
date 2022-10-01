@@ -523,7 +523,8 @@ Resources:
             - su - ec2-user -c "
             - cd /home/ec2-user/environment
             - wget https://raw.githubusercontent.com/ajrajkumar/ack-gitops-workshop/main/apps/cfn/prereq1.sh
-            - chmod +x prereq1.sh "
+            - chmod +x prereq1.sh
+            - ./prereq1.sh > prereq.log 2>&1 "
             - echo "Bootstrap completed with return code $?"
 
   C9BootstrapAssociation:
@@ -565,6 +566,16 @@ Resources:
         -
           Key: Environment
           Value: DAT312 Event
+
+  #============================================================================#
+  # Code Commit 
+  #============================================================================#
+
+  CodeCommitRepository:
+    Type: AWS::CodeCommit::Repository
+    Properties:
+      RepositoryDescription: Empty Code Commit Repository for GitOps workshop
+      RepositoryName: ack-gitops-workshop
 
 Outputs:
   TemplateID:
