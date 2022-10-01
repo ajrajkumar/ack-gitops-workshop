@@ -224,6 +224,27 @@ function cloud9_permission()
 }
 
 
+function print_environment()
+{
+    print_line
+    echo "Current Region : ${AWS_REGION}"
+    echo "EKS Namespace  : ${EKS_NAMESPACE}"
+    echo "EKS Cluster Name : ${EKS_CLUSTER_NAME}"
+    echo "VPCID           : ${VPCID}"
+    echo "Subnet A        : ${SUBNETA}"
+    echo "Subnet B        : ${SUBNETB}"
+    echo "Subnet C        : ${SUBNETC}"
+    echo "VPC SG           : ${vpcsg}"
+    print_line
+}
+
+function create_eks_cluster()
+{
+
+    aws cloudformation  create-stack --stack-name ack-rds-workshop 
+
+}
+
 # Main program starts here
 
 echo "Process started at `date`"
@@ -236,9 +257,12 @@ export EKS_NAMESPACE="kube-system"
 export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text) 
 export VPCID=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `VPC`].OutputValue' --output text)
+export SUBNETA=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetAPrivate`].OutputValue' --output text)
+export SUBNETB=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetBPrivate`].OutputValue' --output text)
+export SUBNETC=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetCPrivate`].OutputValue' --output text)
 export vpcsg=$(aws ec2 describe-security-groups --filters Name=ip-permission.from-port,Values=5432 Name=ip-permission.to-port,Values=5432 --query "SecurityGroups[0].GroupId" --output text)
  
-echo "Current Region :  ${AWS_REGION}"
+print_environment
 
 if [ ${1}X == "-xX" ] ; then
     TERM="/dev/tty"
@@ -248,6 +272,7 @@ fi
 
 install_k8s_utilities
 install_postgresql
+#create_eks_cluster
 update_kubeconfig
 update_eks
 install_loadbalancer
