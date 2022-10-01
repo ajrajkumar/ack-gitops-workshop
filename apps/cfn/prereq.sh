@@ -277,7 +277,6 @@ cloud9_permission
 export EKS_STACK_NAME="ack-rds-workshop"
 export EKS_CFN_FILE="${HOME}/environment/ack.codecommit/apps/cfn/ack-rds-cfn-prereq.yaml"
 export EKS_NAMESPACE="kube-system"
-export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text) 
 export VPCID=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `VPC`].OutputValue' --output text)
 export SUBNETA=$(aws cloudformation describe-stacks --region $AWS_REGION --query 'Stacks[].Outputs[?OutputKey == `SubnetAPrivate`].OutputValue' --output text)
@@ -298,6 +297,7 @@ install_postgresql
 create_iam_user
 clone_git
 create_eks_cluster
+export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
 update_kubeconfig
 update_eks
 install_loadbalancer
