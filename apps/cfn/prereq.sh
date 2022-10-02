@@ -217,20 +217,52 @@ function build_and_publish_container_images()
     print_line
 }
 
-
-function cloud9_permission()
+function chk_cloud9_permission()
 {
-    aws sts get-caller-identity
-    environment_id=`aws ec2 describe-instances --instance-id $(curl -s http://169.254.169.254/latest/meta-data/instance-id) --query "Reservations[*].Instances[*].Tags[?Key=='aws:cloud9:environment'].Value" --output text`
-    aws cloud9 update-environment --environment-id ${environment_id} --region ${AWS_REGION} --managed-credentials-action DISABLE
-    sleep 10
-    ls -l $HOME/.aws/credentials > /dev/null 2>&1
-    if [ $? -eq 0 ] ; then
-         echo "!!! Credentials file exists"
-    else
-        echo "Credentials file does not exists"
+    aws sts get-caller-identity | grep ${INSTANCE_ROLE}  
+    if [ $? -ne 0 ] ; then
+	echo "Fixing the cloud9 permission"
+        environment_id=`aws ec2 describe-instances --instance-id $(curl -s http://169.254.169.254/latest/meta-data/instance-id) --query "Reservations[*].Instances[*].Tags[?Key=='aws:cloud9:environment'].Value" --output text`
+        aws cloud9 update-environment --environment-id ${environment_id} --region ${AWS_REGION} --managed-credentials-action DISABLE
+	sleep 10
+        ls -l $HOME/.aws/credentials > /dev/null 2>&1
+        if [ $? -eq 0 ] ; then
+             echo "!!! Credentials file exists"
+        else
+            echo "Credentials file does not exists"
+        fi
+	echo "After fixing the credentials. Current role"
+        aws sts get-caller-identity | grep ${INSTANCE_ROLE}
     fi
-    aws sts get-caller-identity
+}
+
+
+function initial_cloud9_permission()
+{
+    print_line
+    echo "Checking initial cloud9 permission"
+    typeset -i counter=0
+    managed_role="FALSE"
+    while [ ${counter} -lt 30 ] 
+    do
+        aws sts get-caller-identity | grep ${INSTANCE_ROLE}  
+        if [ $? -eq 0 ] ; then
+            echo "Called identity is Instance role .. Waiting"
+	    sleep 30
+	else
+	    echo "Called identity is AWS Managed Role .. breaking"
+	    managed_role="TRUE"
+	    break
+	fi
+    done
+
+    if [ ${managed_role} == "TRUE" ] ;  then
+        echo "Current role is AWS managed role"
+    else
+        echo "Current role is Instance role.. May cause issue later deployment. But still continuing"
+    fi
+
+    chk_cloud9_permission
 }
 
 
@@ -279,6 +311,8 @@ function create_eks_cluster()
 
 # Main program starts here
 
+export INSTANCE_ROLE="C9Role"
+
 if [ ${1}X == "-xX" ] ; then
     TERM="/dev/tty"
 else
@@ -289,7 +323,7 @@ echo "Process started at `date`"
 install_packages
 
 export AWS_REGION=`curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | jq .region -r`
-cloud9_permission
+initial_cloud9_permission
 export EKS_STACK_NAME="ack-rds-workshop"
 export EKS_CFN_FILE="${HOME}/environment/ack.codecommit/apps/cfn/ack-rds-cfn-prereq.yaml"
 export EKS_NAMESPACE="kube-system"
@@ -303,16 +337,21 @@ install_k8s_utilities
 install_postgresql
 create_iam_user
 clone_git
+chk_cloud9_permission
 create_eks_cluster
 export EKS_CLUSTER_NAME=$(aws cloudformation describe-stacks --query "Stacks[].Outputs[?(OutputKey == 'EKSClusterName')][].{OutputValue:OutputValue}" --output text)
 export vpcsg=$(aws ec2 describe-security-groups --filters Name=ip-permission.from-port,Values=5432 Name=ip-permission.to-port,Values=5432 --query "SecurityGroups[0].GroupId" --output text)
 print_environment
 fix_git
 update_kubeconfig
+chk_cloud9_permission
 update_eks
+chk_cloud9_permission
 install_loadbalancer
 chk_installation
+chk_cloud9_permission
 run_kubectl
+chk_cloud9_permission
 build_and_publish_container_images
 print_line
 
