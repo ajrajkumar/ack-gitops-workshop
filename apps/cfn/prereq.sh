@@ -217,6 +217,13 @@ function build_and_publish_container_images()
     print_line
 }
 
+function create_secret()
+{
+    print_line
+    aws secretsmanager create-secret     --name dbCredential     --description "RDS DB username/password"     --secret-string "{\"dbuser\":\"adminer\",\"password\":\"password\"}" 
+    print_line
+}
+
 function chk_cloud9_permission()
 {
     aws sts get-caller-identity | grep ${INSTANCE_ROLE}  
@@ -353,6 +360,7 @@ chk_cloud9_permission
 run_kubectl
 chk_cloud9_permission
 build_and_publish_container_images
+create_secret
 print_line
 
 echo "Process completed at `date`"
