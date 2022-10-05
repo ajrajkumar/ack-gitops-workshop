@@ -254,8 +254,9 @@ function initial_cloud9_permission()
     do
         aws sts get-caller-identity | grep ${INSTANCE_ROLE}  
         if [ $? -eq 0 ] ; then
-            echo "Called identity is Instance role .. Waiting"
+            echo "Called identity is Instance role .. Waiting - ${counter}"
 	    sleep 30
+	    counter=$counter+1
 	else
 	    echo "Called identity is AWS Managed Role .. breaking"
 	    managed_role="TRUE"
