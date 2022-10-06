@@ -109,6 +109,7 @@ function fix_git()
 
     # Update infrastructure manifests
     sed -i -e "s/<region>/$AWS_REGION/g" ./infrastructure/production/ack/*release*.yaml
+    sed -i -e  -e "s/<account_id>/$AWS_ACCOUNT_ID/g" ./infrastructure/production/ack/*serviceaccount.yaml
 
     # Update application manifests
     sed -i -e "s/<region>/$AWS_REGION/g" \
@@ -221,6 +222,13 @@ function create_secret()
 {
     print_line
     aws secretsmanager create-secret     --name dbCredential     --description "RDS DB username/password"     --secret-string "{\"dbuser\":\"adminer\",\"password\":\"password\"}" 
+    print_line
+}
+
+function install_c9()
+{
+    print_line
+    npm install -g c9
     print_line
 }
 
@@ -343,7 +351,7 @@ export SUBNETC=$(aws cloudformation describe-stacks --region $AWS_REGION --query
  
 install_k8s_utilities
 install_postgresql
-create_iam_user
+#create_iam_user
 clone_git
 chk_cloud9_permission
 create_eks_cluster
@@ -362,6 +370,8 @@ run_kubectl
 chk_cloud9_permission
 build_and_publish_container_images
 create_secret
+print_line
+install_c9
 print_line
 
 echo "Process completed at `date`"

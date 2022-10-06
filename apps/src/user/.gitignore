@@ -1,4 +1,0 @@
-start_docker.sh
-env
-*.pyc
-*.out
