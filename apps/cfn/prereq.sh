@@ -109,7 +109,7 @@ function fix_git()
 
     # Update infrastructure manifests
     sed -i -e "s/<region>/$AWS_REGION/g" ./infrastructure/production/ack/*release*.yaml
-    sed -i -e  -e "s/<account_id>/$AWS_ACCOUNT_ID/g" ./infrastructure/production/ack/*serviceaccount.yaml
+    sed -i -e "s/<account_id>/$AWS_ACCOUNT_ID/g" ./infrastructure/production/ack/*serviceaccount.yaml
 
     # Update application manifests
     sed -i -e "s/<region>/$AWS_REGION/g" \
