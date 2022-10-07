@@ -3,6 +3,5 @@ kind: Kustomization
 resources:
 #    - ./namespace.yaml
 #    - ./aurora-pg.yaml
-#    - ./rdspg.yaml
 #    - ./memorydb-cluster.yaml
 #    - ./retailapp

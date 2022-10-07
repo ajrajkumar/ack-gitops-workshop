@@ -221,7 +221,7 @@ function build_and_publish_container_images()
 function create_secret()
 {
     print_line
-    aws secretsmanager create-secret     --name dbCredential     --description "RDS DB username/password"     --secret-string "{\"dbuser\":\"adminer\",\"password\":\"password\"}" 
+    aws secretsmanager create-secret     --name dbCredential     --description "RDS DB username/password"     --secret-string "{\"dbuser\":\"adminer\",\"password\":\"postgres\"}" 
     print_line
 }
 
