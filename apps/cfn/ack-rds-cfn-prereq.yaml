@@ -337,7 +337,8 @@ Resources:
       SecurityGroupEgress:
       - IpProtocol: tcp
         FromPort: 0
-        ToPort: 65536
+        ToPort: 65535
+        CidrBlock: 0.0.0.0/0
       VpcId: !Ref VPC
       Tags:
       - Key: Name
@@ -442,7 +443,8 @@ Resources:
       SecurityGroupEgress:
       - IpProtocol: tcp
         FromPort: 0
-        ToPort: 65536
+        ToPort: 65535
+        CidrBlock: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-WorkerNodesSecurityGroup"
