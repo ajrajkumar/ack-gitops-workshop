@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Description: 'Cloudformation Template DAT312 EKS ACK Controller Workshop'
+Description: 'Cloudformation Template DAT312 ACK-RDS-GITOPS-Workshop'
 
 Metadata:
   'AWS::CloudFormation::Interface':
@@ -232,7 +232,7 @@ Resources:
                   return (az_list, subnet_list) 
 
               def ack_permissions(eks_cluster_name):
-                service_names = ['rds','memorydb']
+                service_names = ['rds','memorydb','dynamodb']
                 output = {}
                 aws_account_id=boto3.client('sts').get_caller_identity().get('Account')
                 print ("Account id {}".format(aws_account_id))
@@ -334,6 +334,10 @@ Resources:
         ToPort: 6379
         CidrIp: !Sub '10.0.0.0/8'
         Description: 'Access to AppServer Host Security Group for Redis'
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65536
       VpcId: !Ref VPC
       Tags:
       - Key: Name
@@ -435,6 +439,10 @@ Resources:
     Properties:
       GroupDescription: Security group for all the worker nodes
       VpcId: !Ref VPC
+      SecurityGroupEgress:
+      - IpProtocol: tcp
+        FromPort: 0
+        ToPort: 65536
       Tags:
         - Key: Name
           Value: !Sub "${AWS::StackName}-WorkerNodesSecurityGroup"
