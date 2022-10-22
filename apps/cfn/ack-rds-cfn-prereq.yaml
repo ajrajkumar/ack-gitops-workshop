@@ -296,7 +296,7 @@ Resources:
         CidrIp: '10.0.0.0/8'
         Description: 'Access to AppServer Host Security Group for Redis'
       SecurityGroupEgress:
-      - IpProtocol: tcp
+      - IpProtocol: -1
         FromPort: 0
         ToPort: 65535
         CidrIp: 0.0.0.0/0
@@ -406,7 +406,7 @@ Resources:
         - Key: !Sub "kubernetes.io/cluster/${EKSCluster}"
           Value: "owned"
       SecurityGroupEgress:
-      - IpProtocol: tcp
+      - IpProtocol: -1
         FromPort: 0
         ToPort: 65535
         CidrIp: 0.0.0.0/0
